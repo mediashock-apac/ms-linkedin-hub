@@ -957,7 +957,14 @@
   .modal.view-only .fb-remove,
   .modal.view-only .fb-reply-remove,
   .modal.view-only #emojiToggleBtn,
-  .modal.view-only #ideaEmojiToggleBtn {
+  .modal.view-only #ideaEmojiToggleBtn,
+  /* The caption assistant is an editing tool, so it goes wherever the emoji picker goes. Both
+     the button AND the panel are listed: hiding only the button is not enough, because the
+     panel's "Use this" buttons write straight into #f-copy -- a panel left open on desktop
+     would otherwise still be able to rewrite a read-only post on mobile. setPostReadOnly()
+     closes it in JS as well; this rule and that one are deliberately belt-and-braces. */
+  .modal.view-only #aiDraftToggleBtn,
+  .modal.view-only #aiDraftPanel {
     display: none;
   }
   .modal.view-only input:disabled,
@@ -1016,6 +1023,61 @@
 
   .modal-actions { display: flex; align-items: center; gap: 0.6rem; margin-top: 0.3rem; }
   .modal-actions .spacer { flex: 1; }
+
+  /* ---------- caption assistant ----------
+     The settings dialog is taller than most (three sections), so it gets its own width rather
+     than squeezing a brand-voice textarea into the default modal column. */
+  .modal-wide { max-width: 640px; }
+  .ai-sec-head {
+    margin: 1.4rem 0 0.35rem; font-size: 0.78rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.04em; color: var(--text-soft);
+    border-top: 1px solid var(--border); padding-top: 1rem;
+  }
+  .ai-sec-head:first-of-type { border-top: 0; padding-top: 0; margin-top: 0.2rem; }
+  .ai-sec-note { margin: 0 0 0.7rem; font-size: 0.8rem; line-height: 1.5; color: var(--text-soft); }
+  .ai-sec-actions { display: flex; align-items: center; gap: 0.6rem; margin-top: 0.6rem; }
+  .ai-sec-actions .spacer { flex: 1; }
+  .ai-key-state { font-size: 0.76rem; color: var(--text-faint); }
+  .ai-key-state.is-set { color: var(--s-approved-fg); }
+
+  .ai-comp-add { display: flex; flex-direction: column; gap: 0.5rem; }
+  .ai-comp-list { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.9rem; }
+  .ai-comp-item {
+    display: flex; gap: 0.6rem; align-items: flex-start;
+    border: 1px solid var(--border); border-radius: 8px; padding: 0.6rem 0.7rem;
+    background: var(--surface-alt);
+  }
+  .ai-comp-item-body { min-width: 0; flex: 1; }
+  .ai-comp-item-brand { font-size: 0.8rem; font-weight: 700; }
+  .ai-comp-item-text {
+    font-size: 0.78rem; color: var(--text-soft); line-height: 1.45; margin: 0.15rem 0 0;
+    white-space: pre-wrap; overflow-wrap: break-word;
+  }
+  .ai-comp-item-note { font-size: 0.74rem; color: var(--text-faint); margin: 0.3rem 0 0; }
+  .ai-comp-empty { font-size: 0.8rem; color: var(--text-faint); margin: 0.9rem 0 0; }
+
+  /* The in-modal drafting panel. Hidden until asked for -- see #aiDraftPanel's comment. */
+  .ai-draft {
+    margin-top: 0.6rem; border: 1px solid var(--border); border-radius: 8px;
+    padding: 0.7rem 0.75rem; background: var(--surface-alt);
+  }
+  .ai-draft-row { display: flex; gap: 0.5rem; align-items: center; }
+  .ai-draft-row input { flex: 1; min-width: 0; }
+  .ai-draft-grounding { margin: 0.5rem 0 0; font-size: 0.74rem; color: var(--text-faint); line-height: 1.45; }
+  .ai-draft-results { display: flex; flex-direction: column; gap: 0.5rem; }
+  .ai-draft-results:not(:empty) { margin-top: 0.7rem; }
+  .ai-option {
+    border: 1px solid var(--border); border-radius: 8px; padding: 0.6rem 0.7rem; background: var(--surface);
+  }
+  .ai-option-angle {
+    font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+    color: var(--brand); margin: 0 0 0.3rem;
+  }
+  .ai-option-text {
+    font-size: 0.82rem; line-height: 1.5; margin: 0; white-space: pre-wrap; overflow-wrap: break-word;
+  }
+  .ai-option-actions { display: flex; gap: 0.5rem; margin-top: 0.55rem; }
+  .ai-draft-error { font-size: 0.8rem; color: var(--danger); margin: 0.6rem 0 0; }
 
   /* ---------- image carousel (used by the LinkedIn post preview's multi-image gallery) ---------- */
   .carousel-viewport {
@@ -1212,6 +1274,16 @@
           <button type="button" class="user-menu-item" id="desktopNotifToggleBtn">
             <span class="user-menu-item-icon" id="desktopNotifToggleIcon"></span>
             <span id="desktopNotifToggleLabel">Desktop notifications: Off</span>
+          </button>
+          <button type="button" class="user-menu-item" id="aiSettingsOpenBtn">
+            <span class="user-menu-item-icon">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 3v3M12 18v3M3 12h3M18 12h3"></path>
+                <path d="m6.3 6.3 2.1 2.1M15.6 15.6l2.1 2.1M17.7 6.3l-2.1 2.1M8.4 15.6l-2.1 2.1"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+            </span>
+            <span>Caption assistant</span>
           </button>
           <div class="user-menu-divider"></div>
           <button type="button" class="user-menu-item user-menu-item-danger" id="signOutBtn">Sign out</button>
@@ -1692,6 +1764,18 @@
             <label for="f-copy">Post Copy / Draft Text</label>
             <div style="display:flex;align-items:center;gap:0.6rem;">
               <span class="char-counter" id="copyCharCount">0 / 3000</span>
+              <!-- Starburst, deliberately not the eye (preview owns that) or the face (emoji owns
+                   that). Sits in this row rather than as a full-width button under the textarea:
+                   the row is already the home for "things you can do to this field", and a
+                   permanently-visible banner for a feature most drafts won't use is exactly the
+                   clutter the house design rule warns about. -->
+              <button type="button" class="icon-btn" id="aiDraftToggleBtn" aria-expanded="false" aria-controls="aiDraftPanel" aria-label="Draft this caption with AI" title="Draft this caption with AI">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M12 3v3M12 18v3M3 12h3M18 12h3"></path>
+                  <path d="m6.3 6.3 2.1 2.1M15.6 15.6l2.1 2.1M17.7 6.3l-2.1 2.1M8.4 15.6l-2.1 2.1"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+              </button>
               <button type="button" class="icon-btn" id="postPreviewToggleBtn" aria-expanded="false" aria-controls="postPreviewPanel" aria-label="Preview as LinkedIn post" title="Preview as LinkedIn post">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
@@ -1714,6 +1798,17 @@
               <div class="emoji-tabs" id="emojiTabs" role="tablist" aria-label="Emoji categories"></div>
               <div class="emoji-grid" id="emojiGrid"></div>
             </div>
+          </div>
+          <!-- Collapsed until the starburst button is pressed. Lives inside the post modal rather
+               than being a modal of its own: stacking a dialog on a dialog is awkward to escape
+               from, and the whole point is to see the draft next to the field it is going into. -->
+          <div class="ai-draft" id="aiDraftPanel" hidden>
+            <div class="ai-draft-row">
+              <input type="text" id="aiDraftBrief" placeholder="What is this post about? (optional -- leave blank to work from the copy above)">
+              <button type="button" class="btn btn-primary" id="aiDraftGoBtn">Draft</button>
+            </div>
+            <p class="ai-draft-grounding" id="aiDraftGrounding"></p>
+            <div class="ai-draft-results" id="aiDraftResults"></div>
           </div>
         </div>
         <div class="li-preview" id="postPreviewPanel" hidden>
@@ -1901,6 +1996,71 @@
   </div>
 </div>
 
+<!-- One dialog, three sections, one entry in the user menu. Deliberately not three separate
+     modals and three menu items: the key, the voice and the examples are all "how the caption
+     assistant behaves", and splitting them would triple the menu's weight for a thing most
+     people set once. -->
+<div class="modal-backdrop" id="aiSettingsBackdrop">
+  <div class="modal modal-wide" role="dialog" aria-modal="true" aria-labelledby="aiSettingsTitle">
+    <div class="modal-head">
+      <h3 id="aiSettingsTitle">Caption assistant</h3>
+      <button class="icon-btn" id="aiSettingsClose" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+    </div>
+
+    <h4 class="ai-sec-head">Your API key</h4>
+    <p class="ai-sec-note">
+      Stored in this browser only, never in the shared database -- so it is yours, not the team's,
+      and it never reaches anyone else. Everyone who wants to use the assistant adds their own.
+      Get one at <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer">console.anthropic.com</a>.
+    </p>
+    <label>Anthropic API key
+      <input type="password" id="aiKeyInput" placeholder="sk-ant-..." autocomplete="off" spellcheck="false">
+    </label>
+    <div class="ai-sec-actions">
+      <span class="ai-key-state" id="aiKeyState"></span>
+      <div class="spacer"></div>
+      <button type="button" class="btn btn-ghost" id="aiKeyClearBtn">Remove key</button>
+      <button type="button" class="btn btn-primary" id="aiKeySaveBtn">Save key</button>
+    </div>
+
+    <h4 class="ai-sec-head">Brand voice</h4>
+    <p class="ai-sec-note">
+      Shared with the team, and the single biggest influence on what you get back. Describe how
+      MediaShock sounds -- and, just as usefully, how it does not. Specifics beat adjectives:
+      "we say 'we', never 'the team'" is worth more than "professional yet friendly".
+    </p>
+    <textarea id="aiBrandVoiceInput" rows="8" aria-label="Brand voice" placeholder="How we sound:&#10;- Plain, specific, no marketing throat-clearing&#10;- First person plural -- we, us, our crew&#10;- Short paragraphs, one idea each&#10;&#10;How we don't sound:&#10;- No 'thrilled to announce', no 'game-changer'&#10;- No hashtag walls&#10;- Never more than one question per post"></textarea>
+    <div class="ai-sec-actions">
+      <span class="ai-key-state" id="aiBrandVoiceState"></span>
+      <div class="spacer"></div>
+      <button type="button" class="btn btn-primary" id="aiBrandVoiceSaveBtn">Save voice</button>
+    </div>
+
+    <h4 class="ai-sec-head">Competitor examples</h4>
+    <p class="ai-sec-note">
+      Shared with the team. Paste posts you have actually seen from competitors worth learning
+      from. There is no way for this page to read LinkedIn directly -- there is no public API for
+      someone else's posts -- so this list is the assistant's only view of what others are doing,
+      and it gets more useful the more you feed it.
+    </p>
+    <div class="ai-comp-add">
+      <input type="text" id="aiCompBrand" placeholder="Whose post? e.g. Competitor name">
+      <textarea id="aiCompText" rows="3" placeholder="Paste the post text here"></textarea>
+      <input type="text" id="aiCompNote" placeholder="Why it is worth noting (optional) -- e.g. strong opening line, good use of a stat">
+      <div class="ai-sec-actions">
+        <div class="spacer"></div>
+        <button type="button" class="btn btn-primary" id="aiCompAddBtn">Add example</button>
+      </div>
+    </div>
+    <div class="ai-comp-list" id="aiCompList"></div>
+
+    <div class="modal-actions">
+      <div class="spacer"></div>
+      <button type="button" class="btn btn-ghost" id="aiSettingsDoneBtn">Done</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-backdrop" id="goalBackdrop">
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="goalModalTitle">
     <div class="modal-head">
@@ -2036,6 +2196,11 @@ import {
   var notificationsCol = collection(db, "notifications");
   var suggestionsCol = collection(db, "suggestions");
   var rulesVersionDocRef = doc(db, "meta", "rulesVersion");
+  // Both live in settings/ on purpose. That collection already has a deployed rule
+  // (`match /settings/{settingId}`), so the caption assistant needed no new rules and no rules
+  // deploy -- which, given the 2026-09-08 incident above, is a feature and not an accident.
+  var brandVoiceDocRef = doc(db, "settings", "brandVoice");
+  var competitorsDocRef = doc(db, "settings", "competitorExamples");
 
   // The team roster: one doc per person, ID'd by their Firebase uid, written on every sign-in.
   // Ported from the sibling Flowboard, and it matters MORE here, not less. Owner names are typed
@@ -2435,6 +2600,372 @@ import {
     rulesVersionBanner.hidden = false;
   }
 
+  // ---------- caption assistant ----------
+  //
+  // Writes LinkedIn captions in MediaShock's voice, grounded in three things: the shared brand
+  // voice, this account's own best-performing posts (with their real numbers), and a shared list
+  // of competitor posts someone has pasted in.
+  //
+  // WHY THE KEY IS PER-PERSON AND IN localStorage. This is a static page served from GitHub
+  // Pages -- anything committed to the source is readable by anyone who opens it, so a shared
+  // team key would be a published key. Same conclusion MS Creatives reached; see the parent
+  // Claude Projects/CLAUDE.md. The cost is that each person adds their own key once; the benefit
+  // is that there is no backend, no proxy and nothing on the company bill.
+  //
+  // WHY THE DIRECT BROWSER CALL WORKS AT ALL: the
+  // `anthropic-dangerous-direct-browser-access` header. Without it the request is blocked by
+  // CORS and you would need a server in the middle. Do not remove it "for safety" -- it is what
+  // makes the no-backend design possible, and the key it carries is the caller's own.
+  var AI_KEY_LS = "mscontenthub_anthropic_key";
+  var AI_MODEL = "claude-sonnet-5";
+  var AI_MAX_COMPETITORS = 40;   // one settings/ document, and Firestore caps a document at 1MiB
+  var AI_TOP_POSTS_FED = 8;
+
+  function loadAiKey() {
+    try { return localStorage.getItem(AI_KEY_LS) || ""; } catch (e) { return ""; }
+  }
+  function saveAiKey(v) {
+    try { v ? localStorage.setItem(AI_KEY_LS, v) : localStorage.removeItem(AI_KEY_LS); } catch (e) { /* private mode */ }
+  }
+
+  // Models intermittently wrap JSON in prose or a code fence, so a bare JSON.parse() throws on
+  // output that is otherwise perfectly good. Take the outermost object. Same helper, same
+  // reason, as MS Creatives' parseLooseJson.
+  function aiParseLooseJson(text) {
+    var start = text.indexOf("{"), end = text.lastIndexOf("}");
+    if (start === -1 || end <= start) throw new Error("Could not read the assistant's reply.");
+    return JSON.parse(text.slice(start, end + 1));
+  }
+
+  function aiCallClaude(prompt) {
+    var key = loadAiKey();
+    if (!key) return Promise.reject(new Error("No API key saved. Add one under Caption assistant in your profile menu."));
+    return fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-api-key": key,
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true"
+      },
+      body: JSON.stringify({
+        model: AI_MODEL,
+        max_tokens: 2000,
+        messages: [{ role: "user", content: prompt }]
+      })
+    }).then(function (r) {
+      return r.json().then(function (j) {
+        if (!r.ok) {
+          var msg = (j && j.error && j.error.message) || ("Claude returned " + r.status);
+          // 401 is overwhelmingly "wrong/expired key" and the raw message doesn't say so plainly.
+          if (r.status === 401) msg = "That API key was rejected. Check it under Caption assistant in your profile menu.";
+          throw new Error(msg);
+        }
+        return j;
+      });
+    }).then(function (j) {
+      return aiParseLooseJson((j.content || []).map(function (c) { return c.text || ""; }).join(""));
+    });
+  }
+
+  // The evidence half of the prompt. topPosts carries the real published text of what did well,
+  // with real impressions and engagement rates -- which is the whole reason this is worth doing
+  // rather than asking a model to write "a LinkedIn post" in the abstract.
+  //
+  // NOT filtered by content bucket: topPosts comes from LinkedIn's own export and has no bucket
+  // field -- the Hub's buckets live on its own `posts` documents, and the two are not joined
+  // (nothing in the export identifies which Hub post it corresponds to). Rather than invent a
+  // fuzzy title match that would quietly mislead, the top performers overall are passed through
+  // with their content type, and the model is told which bucket this draft is for.
+  function aiTopPostsEvidence() {
+    var analytics = loadAnalytics();
+    var posts = (analytics && analytics.topPosts) || [];
+    return posts.slice()
+      .sort(function (a, b) { return (b.impressions || 0) - (a.impressions || 0); })
+      .slice(0, AI_TOP_POSTS_FED)
+      .map(function (p) {
+        return {
+          text: String(p.title || "").slice(0, 600),
+          contentType: p.contentType || "Unknown",
+          impressions: p.impressions || 0,
+          engagementRate: typeof p.engagementRate === "number" ? Math.round(p.engagementRate * 1000) / 10 : null
+        };
+      });
+  }
+
+  function aiBuildPrompt(opts) {
+    var lines = [];
+    lines.push("You write LinkedIn captions for MediaShock APAC, a video and content production company in Singapore.");
+    lines.push("Write " + opts.count + " distinctly different caption options for one post. Not variations on one idea -- genuinely different angles.");
+    lines.push("");
+
+    lines.push("## MediaShock's voice");
+    if (opts.brandVoice) {
+      lines.push(opts.brandVoice);
+    } else {
+      // Said out loud rather than silently proceeding, so the output's blandness has a stated
+      // cause the person can act on.
+      lines.push("(No brand voice has been written yet. Default to plain, specific, first-person-plural writing with no marketing cliches, and note in your reply that the brand voice is unset.)");
+    }
+    lines.push("");
+
+    if (opts.evidence.length) {
+      lines.push("## What has actually worked on this account");
+      lines.push("Real published posts and their real numbers. Learn the patterns -- opening lines, length, how specific they get, whether they ask anything. Do not copy them.");
+      opts.evidence.forEach(function (e, i) {
+        lines.push((i + 1) + ". [" + e.contentType + ", " + e.impressions + " impressions"
+          + (e.engagementRate !== null ? ", " + e.engagementRate + "% engagement" : "") + "] " + e.text);
+      });
+      lines.push("");
+    }
+
+    if (opts.competitors.length) {
+      lines.push("## What others in the space are posting");
+      lines.push("Collected by the team. Useful for spotting angles worth taking or cliches worth avoiding. Never imitate a specific line.");
+      opts.competitors.forEach(function (c, i) {
+        lines.push((i + 1) + ". " + (c.brand || "Unknown") + (c.note ? " -- noted: " + c.note : ""));
+        lines.push("   " + String(c.text || "").replace(/\n+/g, " ").slice(0, 600));
+      });
+      lines.push("");
+    }
+
+    lines.push("## This post");
+    if (opts.bucket) lines.push("Content bucket: " + opts.bucket);
+    if (opts.title) lines.push("Working title: " + opts.title);
+    if (opts.brief) lines.push("What it is about: " + opts.brief);
+    if (opts.existing) {
+      lines.push("There is already a draft. Improve on it, keep what works, keep the author's intent:");
+      lines.push(opts.existing.slice(0, 2000));
+    }
+    if (!opts.brief && !opts.existing && !opts.title) {
+      lines.push("No brief was given. Ask for one instead of guessing: return a single option whose text explains what you need to know.");
+    }
+    lines.push("");
+
+    lines.push("## Rules");
+    lines.push("- Under 3000 characters; aim for 600-1300, the length that reads well in-feed.");
+    lines.push("- No hashtag walls. Two or three at most, or none.");
+    lines.push("- No em dashes.");
+    lines.push("- Plain line breaks only. No markdown, no bold, no bullets unless the post genuinely is a list.");
+    lines.push("- Do not invent facts, numbers, client names or results. If a claim needs a number you were not given, leave a short [bracketed note] asking for it.");
+    lines.push("");
+    lines.push('Reply with JSON only: {"options":[{"angle":"three or four words naming the approach","text":"the caption"}]}');
+    return lines.join("\n");
+  }
+
+  var aiDraftPanel = document.getElementById("aiDraftPanel");
+  var aiDraftToggleBtn = document.getElementById("aiDraftToggleBtn");
+  var aiDraftBrief = document.getElementById("aiDraftBrief");
+  var aiDraftGoBtn = document.getElementById("aiDraftGoBtn");
+  var aiDraftResults = document.getElementById("aiDraftResults");
+  var aiDraftGrounding = document.getElementById("aiDraftGrounding");
+
+  // Says what the draft will actually be based on, before spending a call. Without this the
+  // assistant is a black box and an empty brand voice looks like a bug rather than a blank field.
+  function renderAiGrounding() {
+    var bits = [];
+    bits.push(aiBrandVoice ? "Brand voice set" : "No brand voice yet — add one for results that sound like you");
+    var ev = aiTopPostsEvidence().length;
+    bits.push(ev ? ("Learning from your top " + ev + " post" + (ev === 1 ? "" : "s")) : "No analytics imported yet");
+    bits.push(aiCompetitors.length ? (aiCompetitors.length + " competitor example" + (aiCompetitors.length === 1 ? "" : "s")) : "No competitor examples");
+    aiDraftGrounding.textContent = bits.join(" · ");
+  }
+
+  function setAiDraftPanelOpen(open) {
+    aiDraftPanel.hidden = !open;
+    aiDraftToggleBtn.setAttribute("aria-expanded", open ? "true" : "false");
+    if (open) { renderAiGrounding(); aiDraftBrief.focus(); }
+  }
+
+  aiDraftToggleBtn.addEventListener("click", function () {
+    setAiDraftPanelOpen(aiDraftPanel.hidden);
+  });
+
+  function renderAiOptions(options) {
+    if (!options.length) {
+      aiDraftResults.innerHTML = '<p class="ai-draft-error">The assistant returned nothing usable. Try again, or give it a bit more to go on.</p>';
+      return;
+    }
+    aiDraftResults.innerHTML = options.map(function (o, i) {
+      return '<div class="ai-option">' +
+        '<p class="ai-option-angle">' + escapeHtml(o.angle || ("Option " + (i + 1))) + '</p>' +
+        '<p class="ai-option-text">' + escapeHtml(o.text || "") + '</p>' +
+        '<div class="ai-option-actions">' +
+          '<button type="button" class="btn btn-primary" data-ai-use="' + i + '">Use this</button>' +
+          '<button type="button" class="btn btn-ghost" data-ai-append="' + i + '">Add below current draft</button>' +
+        '</div>' +
+      '</div>';
+    }).join("");
+    aiDraftResults._options = options;
+  }
+
+  // Replacing what someone has already written is the one genuinely destructive thing here, so
+  // it asks first -- and only when there is something to lose.
+  aiDraftResults.addEventListener("click", function (e) {
+    var useBtn = e.target.closest("[data-ai-use]");
+    var appendBtn = e.target.closest("[data-ai-append]");
+    var opts = aiDraftResults._options || [];
+    if (useBtn) {
+      var chosen = opts[parseInt(useBtn.getAttribute("data-ai-use"), 10)];
+      if (!chosen) return;
+      var current = fCopy.value.trim();
+      if (current && !confirm("Replace the current draft with this option?")) return;
+      fCopy.value = chosen.text || "";
+      fCopy.dispatchEvent(new Event("input", { bubbles: true }));
+      showToast("Caption replaced.", "success");
+    } else if (appendBtn) {
+      var add = opts[parseInt(appendBtn.getAttribute("data-ai-append"), 10)];
+      if (!add) return;
+      fCopy.value = (fCopy.value.trim() ? fCopy.value.replace(/\s+$/, "") + "\n\n" : "") + (add.text || "");
+      fCopy.dispatchEvent(new Event("input", { bubbles: true }));
+      showToast("Caption added below your draft.", "success");
+    }
+  });
+
+  aiDraftGoBtn.addEventListener("click", function () {
+    if (!loadAiKey()) {
+      showToast("Add your Anthropic API key first — profile menu, Caption assistant.", "error");
+      openAiSettings();
+      return;
+    }
+    var prompt = aiBuildPrompt({
+      count: 3,
+      brandVoice: aiBrandVoice,
+      evidence: aiTopPostsEvidence(),
+      competitors: aiCompetitors,
+      bucket: fBucket ? fBucket.value : "",
+      title: fTitle ? fTitle.value.trim() : "",
+      brief: aiDraftBrief.value.trim(),
+      existing: fCopy.value.trim()
+    });
+    aiDraftGoBtn.disabled = true;
+    aiDraftGoBtn.textContent = "Drafting…";
+    aiDraftResults.innerHTML = "";
+    aiCallClaude(prompt).then(function (json) {
+      renderAiOptions(Array.isArray(json.options) ? json.options : []);
+    }).catch(function (err) {
+      aiDraftResults.innerHTML = '<p class="ai-draft-error">' + escapeHtml(err.message || "Something went wrong.") + "</p>";
+    }).then(function () {
+      aiDraftGoBtn.disabled = false;
+      aiDraftGoBtn.textContent = "Draft";
+    });
+  });
+
+  // ---------- caption assistant settings ----------
+  var aiSettingsBackdrop = document.getElementById("aiSettingsBackdrop");
+  var aiKeyInput = document.getElementById("aiKeyInput");
+  var aiKeyState = document.getElementById("aiKeyState");
+  var aiBrandVoiceInput = document.getElementById("aiBrandVoiceInput");
+  var aiBrandVoiceState = document.getElementById("aiBrandVoiceState");
+  var aiCompList = document.getElementById("aiCompList");
+
+  function renderAiKeyState() {
+    var has = !!loadAiKey();
+    aiKeyState.textContent = has ? "Key saved in this browser" : "No key saved";
+    aiKeyState.classList.toggle("is-set", has);
+  }
+
+  function renderAiBrandVoice() {
+    // Don't clobber what someone is mid-way through typing just because a snapshot arrived.
+    if (document.activeElement !== aiBrandVoiceInput) aiBrandVoiceInput.value = aiBrandVoice;
+    aiBrandVoiceState.textContent = aiBrandVoice ? "Shared with the team" : "Not set yet";
+    aiBrandVoiceState.classList.toggle("is-set", !!aiBrandVoice);
+    if (aiDraftPanel && !aiDraftPanel.hidden) renderAiGrounding();
+  }
+
+  function renderAiCompetitors() {
+    if (!aiCompetitors.length) {
+      aiCompList.innerHTML = '<p class="ai-comp-empty">Nothing added yet.</p>';
+    } else {
+      aiCompList.innerHTML = aiCompetitors.map(function (c, i) {
+        return '<div class="ai-comp-item">' +
+          '<div class="ai-comp-item-body">' +
+            '<div class="ai-comp-item-brand">' + escapeHtml(c.brand || "Unknown") + '</div>' +
+            '<p class="ai-comp-item-text">' + escapeHtml(String(c.text || "").slice(0, 400)) + '</p>' +
+            (c.note ? '<p class="ai-comp-item-note">' + escapeHtml(c.note) + '</p>' : '') +
+          '</div>' +
+          '<button type="button" class="icon-btn" data-ai-comp-remove="' + i + '" aria-label="Remove this example" title="Remove this example">' +
+            '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>' +
+          '</button>' +
+        '</div>';
+      }).join("");
+    }
+    if (aiDraftPanel && !aiDraftPanel.hidden) renderAiGrounding();
+  }
+
+  function openAiSettings() {
+    aiKeyInput.value = loadAiKey();
+    renderAiKeyState();
+    renderAiBrandVoice();
+    renderAiCompetitors();
+    aiSettingsBackdrop.classList.add("open");
+  }
+  function closeAiSettings() { aiSettingsBackdrop.classList.remove("open"); }
+
+  document.getElementById("aiSettingsOpenBtn").addEventListener("click", function () {
+    userMenuPanel.hidden = true;
+    openAiSettings();
+  });
+  document.getElementById("aiSettingsClose").addEventListener("click", closeAiSettings);
+  document.getElementById("aiSettingsDoneBtn").addEventListener("click", closeAiSettings);
+  aiSettingsBackdrop.addEventListener("click", function (e) {
+    if (e.target === aiSettingsBackdrop) closeAiSettings();
+  });
+
+  document.getElementById("aiKeySaveBtn").addEventListener("click", function () {
+    var v = aiKeyInput.value.trim();
+    if (!v) { showToast("Paste a key first.", "error"); return; }
+    saveAiKey(v);
+    renderAiKeyState();
+    showToast("Key saved in this browser.", "success");
+  });
+  document.getElementById("aiKeyClearBtn").addEventListener("click", function () {
+    saveAiKey("");
+    aiKeyInput.value = "";
+    renderAiKeyState();
+    showToast("Key removed from this browser.", "info");
+  });
+
+  document.getElementById("aiBrandVoiceSaveBtn").addEventListener("click", function () {
+    var v = aiBrandVoiceInput.value.trim();
+    setDoc(brandVoiceDocRef, { voice: v, updatedBy: (auth.currentUser ? (auth.currentUser.displayName || auth.currentUser.email) : null), at: Date.now() })
+      .then(function () { showToast("Brand voice saved for the team.", "success"); })
+      .catch(function (e) { console.error(e); showToast("Could not save the brand voice.", "error"); });
+  });
+
+  document.getElementById("aiCompAddBtn").addEventListener("click", function () {
+    var brand = document.getElementById("aiCompBrand").value.trim();
+    var text = document.getElementById("aiCompText").value.trim();
+    var note = document.getElementById("aiCompNote").value.trim();
+    if (!text) { showToast("Paste the post text first.", "error"); return; }
+    if (aiCompetitors.length >= AI_MAX_COMPETITORS) {
+      showToast("That's the limit of " + AI_MAX_COMPETITORS + " examples — remove an old one first.", "error");
+      return;
+    }
+    var next = aiCompetitors.concat([{
+      brand: brand || "Unknown", text: text.slice(0, 3000), note: note,
+      addedBy: (auth.currentUser ? (auth.currentUser.displayName || auth.currentUser.email) : null), at: Date.now()
+    }]);
+    setDoc(competitorsDocRef, { examples: next })
+      .then(function () {
+        document.getElementById("aiCompBrand").value = "";
+        document.getElementById("aiCompText").value = "";
+        document.getElementById("aiCompNote").value = "";
+        showToast("Example added.", "success");
+      })
+      .catch(function (e) { console.error(e); showToast("Could not save that example.", "error"); });
+  });
+
+  aiCompList.addEventListener("click", function (e) {
+    var btn = e.target.closest("[data-ai-comp-remove]");
+    if (!btn) return;
+    var idx = parseInt(btn.getAttribute("data-ai-comp-remove"), 10);
+    var next = aiCompetitors.slice();
+    next.splice(idx, 1);
+    setDoc(competitorsDocRef, { examples: next })
+      .catch(function (e2) { console.error(e2); showToast("Could not remove that example.", "error"); });
+  });
+
   // ---------- install as an app (PWA) ----------
   // Chrome/Edge (desktop + Android) support a real install prompt via beforeinstallprompt. iOS
   // Safari has no such API at all -- Apple only allows "Add to Home Screen" as a manual Share-sheet
@@ -2546,6 +3077,11 @@ import {
 
   var unsubPosts = null, unsubBuckets = null, unsubIdeas = null, unsubAnalytics = null, unsubActivity = null, unsubQuickLink = null, unsubGoal = null;
   var unsubNotifications = null, unsubSuggestions = null, unsubRulesVersion = null;
+  var unsubBrandVoice = null, unsubCompetitors = null;
+  // Caption assistant, shared via settings/. The API key is deliberately NOT here -- it is
+  // per-person and lives in localStorage only (see AI_KEY_LS).
+  var aiBrandVoice = "";
+  var aiCompetitors = [];
   var currentGoals = [];
   var goalsMigrationChecked = false;
   var activityLog = [];
@@ -2703,6 +3239,19 @@ import {
       renderQuickLink(snap.data());
     }, function (err) { console.error("quick link listener error", err); });
 
+    // Caption assistant's two shared documents. Neither is seeded on first read: an empty brand
+    // voice is a legitimate state (nobody has written one yet) and seeding a placeholder would
+    // get fed to the model as if it were real guidance.
+    unsubBrandVoice = onSnapshot(brandVoiceDocRef, function (snap) {
+      aiBrandVoice = (snap.exists() && snap.data().voice) || "";
+      renderAiBrandVoice();
+    }, function (err) { console.error("brand voice listener error", err); });
+
+    unsubCompetitors = onSnapshot(competitorsDocRef, function (snap) {
+      aiCompetitors = (snap.exists() && Array.isArray(snap.data().examples)) ? snap.data().examples : [];
+      renderAiCompetitors();
+    }, function (err) { console.error("competitor examples listener error", err); });
+
     unsubGoal = onSnapshot(goalsCol, function (snap) {
       if (snap.empty && !goalsMigrationChecked) {
         goalsMigrationChecked = true;
@@ -2730,9 +3279,12 @@ import {
   }
 
   function stopListeners() {
-    [unsubPosts, unsubBuckets, unsubIdeas, unsubAnalytics, unsubActivity, unsubQuickLink, unsubGoal, unsubNotifications, unsubSuggestions, unsubPeople, unsubRulesVersion].forEach(function (fn) { if (fn) fn(); });
-    unsubPosts = unsubBuckets = unsubIdeas = unsubAnalytics = unsubActivity = unsubQuickLink = unsubGoal = unsubNotifications = unsubSuggestions = unsubPeople = unsubRulesVersion = null;
+    [unsubPosts, unsubBuckets, unsubIdeas, unsubAnalytics, unsubActivity, unsubQuickLink, unsubGoal, unsubNotifications, unsubSuggestions, unsubPeople, unsubRulesVersion, unsubBrandVoice, unsubCompetitors].forEach(function (fn) { if (fn) fn(); });
+    unsubPosts = unsubBuckets = unsubIdeas = unsubAnalytics = unsubActivity = unsubQuickLink = unsubGoal = unsubNotifications = unsubSuggestions = unsubPeople = unsubRulesVersion = unsubBrandVoice = unsubCompetitors = null;
     teamPeople = [];
+    // Shared content, not this person's -- drop it on sign-out like every other listener's data.
+    aiBrandVoice = "";
+    aiCompetitors = [];
     rulesVersionBanner.hidden = true;
   }
 
@@ -4133,6 +4685,11 @@ import {
     fDate.readOnly = readOnly;
     fTime.readOnly = readOnly;
     fCopy.readOnly = readOnly;
+    // Close the assistant outright on a read-only post rather than just hiding its button. The
+    // panel's "Use this" writes into fCopy, and readOnly on a textarea only stops typing -- it
+    // does nothing to stop a script setting .value.
+    aiDraftToggleBtn.disabled = readOnly;
+    if (readOnly) setAiDraftPanelOpen(false);
     if (readOnly) deleteBtn.hidden = true;
     postForm.querySelector('button[type="submit"]').hidden = readOnly;
     cancelBtn.textContent = readOnly ? "Close" : "Cancel";
@@ -4201,6 +4758,15 @@ import {
     closeStatusPicker();
     renderPostImageGrid();
     postEmojiCtrl.close();
+    // Reset the assistant with every modal open, for the same reason the preview panel below is
+    // reset: these are per-post working state, and the modal is reused rather than rebuilt. Left
+    // alone, opening a post with the panel up carried the panel AND the previous post's drafts
+    // straight into the next one -- so one post's suggested captions sat under another post's
+    // title, one "Use this" click away from being pasted into the wrong draft.
+    setAiDraftPanelOpen(false);
+    aiDraftResults.innerHTML = "";
+    aiDraftResults._options = null;
+    aiDraftBrief.value = "";
     postPreviewPanel.hidden = true;
     postPreviewToggleBtn.setAttribute("aria-expanded", "false");
     setPostReadOnly(isMobileView());
