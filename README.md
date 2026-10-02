@@ -4,7 +4,7 @@ A shared LinkedIn content calendar, planner, and analytics dashboard for MediaSh
 Runs entirely as a single client-side HTML file (no build step), backed by Firebase
 (Firestore + Authentication) so the whole team can edit it together with live updates.
 
-**Live:** https://deane-ms.github.io/MS-linkedin-hub/
+**Live:** https://mediashock-apac.github.io/ms-linkedin-hub/
 
 ## Access
 
@@ -57,3 +57,22 @@ python -m http.server 8765   # serve the file over http:// — Firebase Auth's p
 ```
 The app auto-detects `localhost`/`127.0.0.1` and points itself at the emulator instead of the
 real project in that case — no config changes needed to switch between the two.
+
+## Deploying
+
+Edit `content-hub-firebase.html`, regenerate `index.html` with `sync_from_scratchpad.py`, then
+push to `main` — GitHub Pages serves the repo root directly, so the live site updates on its own.
+Pushing only `content-hub-firebase.html` changes nothing that anyone can see; `index.html` is the
+file Pages actually serves.
+
+`firestore.rules` is **not** covered by that push. It needs a separate
+`firebase deploy --only firestore:rules`, or a paste into the Firebase console —
+otherwise a new collection or query fails with "Missing or insufficient permissions" even though
+the deployed page looks correct.
+
+## Contributing
+
+`CLAUDE.md` in this repo is the deep reference — the data model, each view's design reasoning,
+and the gotchas worth knowing before changing anything. `DESIGN.md` covers the icon set and
+visual conventions. The patterns shared across all Mediashock internal tools (auth, notifications,
+Firestore rules conventions) live in the `CLAUDE.md` one folder up.
