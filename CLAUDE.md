@@ -219,48 +219,6 @@ silent:
   the `meta/` match entirely) banners with "unknown (pre-dates this check)" rather than failing
   silently, since that too means the live rules are behind.
 
-## Caption assistant
-
-Drafts LinkedIn captions in MediaShock's voice from inside the post editor. A starburst button in
-the row above `#f-copy` opens `#aiDraftPanel`, *inside* the post modal rather than as a second
-dialog — stacking a dialog on a dialog is awkward to escape from, and the point is to see the
-draft next to the field it is going into. Three options come back per run; "Use this" asks before
-overwriting a non-empty draft, "Add below current draft" never does.
-
-- **The API key is per-person, in `localStorage` (`mscontenthub_anthropic_key`), never in
-  Firestore.** This is a static page on GitHub Pages: anything in the source is readable by
-  anyone who opens it, so a shared team key would be a published key. Same conclusion MS
-  Creatives reached — see the parent `Claude Projects/CLAUDE.md`. The direct browser call works
-  only because of the `anthropic-dangerous-direct-browser-access` header; without it CORS blocks
-  the request and you would need a server in the middle. **Don't remove that header "for
-  safety"** — it is what makes the no-backend design possible, and the key it carries is the
-  caller's own.
-- **Both shared documents live in `settings/`** (`settings/brandVoice`, `settings/
-  competitorExamples`) specifically because `match /settings/{settingId}` is already deployed, so
-  the whole feature needed no new rules and no rules deploy. Given the incident above, that was
-  the deciding factor in the data model, not a coincidence.
-- **Neither document is seeded on first read**, unlike `settings/quickLink`. An absent brand voice
-  is a legitimate state (nobody has written one), and seeding a placeholder would feed invented
-  guidance to the model as if the team had written it. The prompt instead tells the model the
-  voice is unset and to say so in its reply, so blandness has a stated cause.
-- **The grounding line (`#aiDraftGrounding`) is not decoration.** It states what the draft will be
-  based on *before* a call is spent — brand voice set or not, how many top posts, how many
-  competitor examples. Without it the assistant is a black box and an empty brand voice reads as
-  a bug rather than a blank field.
-- **Evidence is NOT filtered by content bucket, deliberately.** `topPosts` comes from LinkedIn's
-  own export and has no bucket field; nothing in the export identifies which Hub `posts` document
-  it corresponds to, so the two are not joined. A fuzzy title match was rejected as something
-  that would quietly mislead. Top performers overall are passed with their real impressions and
-  engagement rates, and the model is told which bucket the draft is for.
-- **Competitor examples are pasted by hand, and that is the ceiling, not a v1 shortcut.** There is
-  no public API for someone else's LinkedIn posts, and CORS blocks a scrape regardless of keys.
-  Capped at `AI_MAX_COMPETITORS` (40) because they share one document and Firestore caps a
-  document at 1MiB.
-- Two bugs found in QA and worth not reintroducing: the panel leaked its open state and results
-  into the next post opened, and it was fully usable on read-only mobile posts. Both are written
-  up in `DESIGN.md` under "Mobile / view-only mode" as general rules, because neither is specific
-  to this feature.
-
 ## Team roster (`people`)
 
 One doc per teammate, **doc ID = their Firebase uid**, `{name, email, lastSeen}`, upserted by
