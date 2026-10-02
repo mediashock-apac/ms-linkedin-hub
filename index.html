@@ -227,6 +227,9 @@
   }
   .onboarding-banner p { margin: 0; font-size: 0.85rem; color: var(--text); line-height: 1.5; }
   .onboarding-banner .icon-btn { flex-shrink: 0; }
+  /* Same recipe, danger tokens instead of brand -- for a real operational problem rather than
+     a welcome message. See rulesVersionBanner. */
+  .onboarding-banner.banner-danger { background: var(--danger-soft); border-color: var(--danger); border-left-color: var(--danger); }
 
   /* ---------- toasts ----------
      Replaces the blocking alert() dialogs this app used for every write failure. z-index sits
@@ -1253,6 +1256,13 @@
     </div>
   </header>
 
+  <!-- Self-clearing: no dismiss control. It's driven live off meta/rulesVersion (see
+       checkRulesVersion), so it disappears for everyone the moment an admin redeploys rules and
+       bumps that doc -- a dismiss button would let someone hide a real, still-live problem. -->
+  <div class="onboarding-banner banner-danger" id="rulesVersionBanner" hidden>
+    <p><strong>Firestore security rules may be out of date.</strong> <span id="rulesVersionText"></span> Edits may fail with a permission error until an admin redeploys them.</p>
+  </div>
+
   <div class="onboarding-banner" id="onboardingBanner" hidden>
     <p><strong>Welcome to the Content Hub!</strong> Use <strong>+ New Post</strong> on the Calendar or add an
       idea in the Content Planner to get started — drag-and-drop scheduling, the feedback log, buckets,
@@ -2005,6 +2015,10 @@ import {
     appId: "1:455294846384:web:5cab35924dd7a95da9c275"
   };
   var ALLOWED_EMAIL_DOMAIN = "mediashock.com.sg";
+  // Kept in sync BY HAND with the RULES_VERSION comment and meta/rulesVersion.version in
+  // firestore.rules -- see checkRulesVersion() and that file's own comment for why this can't
+  // be derived automatically. Bump this alongside a rules deploy, not before.
+  var EXPECTED_RULES_VERSION = "2026-09-08a";
   var USE_EMULATORS = ["localhost", "127.0.0.1"].indexOf(location.hostname) > -1;
 
   var fbApp = initializeApp(USE_EMULATORS
@@ -2031,6 +2045,7 @@ import {
   var activityQuery = query(activityCol, orderBy("at", "desc"), limit(50));
   var notificationsCol = collection(db, "notifications");
   var suggestionsCol = collection(db, "suggestions");
+  var rulesVersionDocRef = doc(db, "meta", "rulesVersion");
 
   // The team roster: one doc per person, ID'd by their Firebase uid, written on every sign-in.
   // Ported from the sibling Flowboard, and it matters MORE here, not less. Owner names are typed
@@ -2414,6 +2429,22 @@ import {
     try { localStorage.setItem(ONBOARDING_DISMISSED_KEY, "1"); } catch (e) {}
   });
 
+  // ---------- stale-rules tripwire ----------
+  // See EXPECTED_RULES_VERSION and the RULES_VERSION comment in firestore.rules. No doc yet
+  // (meta/rulesVersion never created) is treated as "unknown," not "stale" -- otherwise every
+  // install would banner permanently until someone manually creates that doc, for a mismatch
+  // that hasn't actually been observed.
+  var rulesVersionBanner = document.getElementById("rulesVersionBanner");
+  var rulesVersionText = document.getElementById("rulesVersionText");
+  function renderRulesVersionBanner(liveVersion) {
+    if (!liveVersion || liveVersion === EXPECTED_RULES_VERSION) {
+      rulesVersionBanner.hidden = true;
+      return;
+    }
+    rulesVersionText.textContent = "Live: " + liveVersion + ", expected: " + EXPECTED_RULES_VERSION + ".";
+    rulesVersionBanner.hidden = false;
+  }
+
   // ---------- install as an app (PWA) ----------
   // Chrome/Edge (desktop + Android) support a real install prompt via beforeinstallprompt. iOS
   // Safari has no such API at all -- Apple only allows "Add to Home Screen" as a manual Share-sheet
@@ -2471,7 +2502,7 @@ import {
   // open -- Firestore data already updates live via onSnapshot, so the only thing lagging
   // behind is *this page's own code*, and losing an in-progress draft to a surprise reload
   // would be worse than waiting a few seconds for the tab to be idle.
-  var CURRENT_BUILD_VERSION = "2026-08-31T04:24:36Z";
+  var CURRENT_BUILD_VERSION = "2026-09-08T10:51:27Z";
   var pendingBuildVersion = null;
 
   function anyModalOpen() {
@@ -2524,7 +2555,7 @@ import {
   topbarSignOutBtn.addEventListener("click", doSignOut);
 
   var unsubPosts = null, unsubBuckets = null, unsubIdeas = null, unsubAnalytics = null, unsubActivity = null, unsubQuickLink = null, unsubGoal = null;
-  var unsubNotifications = null, unsubSuggestions = null;
+  var unsubNotifications = null, unsubSuggestions = null, unsubRulesVersion = null;
   var currentGoals = [];
   var goalsMigrationChecked = false;
   var activityLog = [];
@@ -2697,12 +2728,22 @@ import {
       currentGoals = snap.docs.map(function (d) { return normalizedGoal(Object.assign({ id: d.id }, d.data())); }).filter(Boolean);
       renderGoalCards();
     }, function (err) { console.error("goal listener error", err); });
+
+    unsubRulesVersion = onSnapshot(rulesVersionDocRef, function (snap) {
+      renderRulesVersionBanner(snap.exists() ? snap.data().version : null);
+    }, function (err) {
+      // permission-denied here would itself mean the live rules are old enough to predate the
+      // meta/ match entirely -- exactly the drift this exists to catch, so surface it the same way.
+      console.error("rules version listener error", err);
+      renderRulesVersionBanner(err && err.code === "permission-denied" ? "unknown (pre-dates this check)" : null);
+    });
   }
 
   function stopListeners() {
-    [unsubPosts, unsubBuckets, unsubIdeas, unsubAnalytics, unsubActivity, unsubQuickLink, unsubGoal, unsubNotifications, unsubSuggestions, unsubPeople].forEach(function (fn) { if (fn) fn(); });
-    unsubPosts = unsubBuckets = unsubIdeas = unsubAnalytics = unsubActivity = unsubQuickLink = unsubGoal = unsubNotifications = unsubSuggestions = unsubPeople = null;
+    [unsubPosts, unsubBuckets, unsubIdeas, unsubAnalytics, unsubActivity, unsubQuickLink, unsubGoal, unsubNotifications, unsubSuggestions, unsubPeople, unsubRulesVersion].forEach(function (fn) { if (fn) fn(); });
+    unsubPosts = unsubBuckets = unsubIdeas = unsubAnalytics = unsubActivity = unsubQuickLink = unsubGoal = unsubNotifications = unsubSuggestions = unsubPeople = unsubRulesVersion = null;
     teamPeople = [];
+    rulesVersionBanner.hidden = true;
   }
 
   onAuthStateChanged(auth, function (user) {

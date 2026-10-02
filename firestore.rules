@@ -76,6 +76,14 @@ service cloud.firestore {
     match /buckets/{bucketId}         { allow read, write: if isMediashock(); }
     match /goals/{goalId}             { allow read, write: if isMediashock(); }
 
+    // Same shape as buckets/goals: small shared config docs, not owned content. Holds the
+    // topbar quick-link (settings/quickLink) and a legacy single-goal doc (settings/goal, read
+    // once during migration into goals/ -- see goalDocRef in content-hub-firebase.html). This
+    // collection had no match at all before 2026-09-08 -- with collections enumerated
+    // deliberately (see above) that meant every read/write to it was silently denied, which is
+    // exactly the "Missing or insufficient permissions" failure mode this file warns about.
+    match /settings/{settingId}       { allow read, write: if isMediashock(); }
+
     match /suggestions/{suggestionId} {
       allow read, create: if isMediashock();
       // Replies live as an embedded array on the suggestion doc, so posting a reply IS an
@@ -128,6 +136,23 @@ service cloud.firestore {
     match /notifications/{notifId} {
       allow create: if isMediashock();
       allow read, update, delete: if isMediashock() && isNotificationRecipient(resource.data);
+    }
+
+    // A tripwire for the exact failure this file's header comment warns about: pushing to
+    // GitHub does not redeploy these rules, so the live rules and this source file can quietly
+    // drift (an ownership-scoped version of posts/ideas stayed live for days after being
+    // reverted in code -- see the Content Hub CLAUDE.md). There is no way for rules to report
+    // their own content to a client, so meta/rulesVersion.version is a plain string, kept in
+    // sync BY HAND with the RULES_VERSION comment below and EXPECTED_RULES_VERSION in
+    // content-hub-firebase.html, as one step of deploying this file -- bump all three, and set
+    // this doc's `version` field via the Firebase Console's Firestore Data tab (writing it is
+    // restricted to admins so a compromised/buggy teammate session can't mask a real drift by
+    // rewriting it to match). The client compares its own constant against this doc live and
+    // banners if they differ.
+    // RULES_VERSION: 2026-09-08a
+    match /meta/{docId} {
+      allow read: if isMediashock();
+      allow write: if isAdmin();
     }
   }
 }

@@ -12,7 +12,7 @@ MediaShock APAC's LinkedIn Content Hub — a shared content calendar, planner (k
 ideas), and analytics dashboard. Single client-side HTML file, no build step, backed by Firebase
 (Firestore + Google Auth) for live multi-user editing.
 
-Live at https://deane-ms.github.io/MS-linkedin-hub/ (GitHub Pages).
+Live at https://mediashock-apac.github.io/ms-linkedin-hub/ (GitHub Pages).
 
 ## Critical: canonical source vs. generated file
 
@@ -51,11 +51,18 @@ no config changes needed.
 
 - **Firestore collections**: `posts`, `buckets`, `ideas`, `notifications`, `suggestions` (one doc
   per item), plus single documents `analytics/current` and `goals/<metric>` (one goal doc per
-  metric, capped at 3). Everything reads live via `onSnapshot`. Access control is one blanket rule
-  in `firestore.rules` (`match /{document=**} { allow read, write: if isMediashock(); }`,
-  `@mediashock.com.sg` only) covering every collection — unlike the sibling Team Project Manager
-  app, a brand-new collection here needs no separate rules deploy. `notifications` is queried with
-  `where("recipient", "==", ...)` only (sorted client-side) to avoid needing a composite index.
+  metric, capped at 3), plus `settings/*`, `people`, `activity` and `meta/rulesVersion`. Everything
+  reads live via `onSnapshot`.
+  - **Access control enumerates every collection** in `firestore.rules`, each gated on
+    `isMediashock()` (`@mediashock.com.sg` only). This file used to say the opposite — that one
+    blanket `match /{document=**}` covered everything, so "a brand-new collection here needs no
+    separate rules deploy." **That is no longer true, and following it will cost you an
+    afternoon.** An unlisted collection is denied outright, with no error anywhere except
+    `permission-denied` at the point of use. That is exactly how `settings/{quickLink,goal}`
+    shipped silently broken — see the stale-rules tripwire section below. A new collection now
+    needs its own `match` block *and* a rules deploy, same as the sibling Team Project Manager app.
+  - `notifications` is queried with `where("recipient", "==", ...)` only (sorted client-side) to
+    avoid needing a composite index.
 - **Notifications**: `notifyRecipients` writes a `notifications` doc per recipient.
   `notifyWithMentions` (used by both the feedback-add and feedback-reply handlers on Posts and
   Ideas) wraps it to merge two recipient sets into one notification each: anyone `@Name`-mentioned
@@ -169,6 +176,48 @@ Post/Idea editing on any viewport under 720px (`isMobileView()`, `setPostReadOnl
 "View only" badge — see DESIGN.md "Mobile / view-only mode"). That is deliberate and predates all
 of the above. The tell is that **the Save button is absent entirely**, rather than present and
 erroring.
+
+## Stale-rules tripwire (`meta/rulesVersion`)
+
+**Incident, 2026-09-08:** a teammate given full access via the normal sign-in link still got
+`permission-denied` on ordinary post edits. Root cause was exactly the gap the parent
+`Claude Projects/CLAUDE.md` warns about: rules are deployed separately from the site, that step
+was missed after the 2026-09-02 ownership-scoped-editing revert, and the *live* Firestore rules
+still enforced the old (reverted-in-code) restriction — silently, with no signal anywhere that
+the deployed rules and this repo's `firestore.rules` had drifted apart.
+
+Same investigation also turned up that `settings/{quickLink,goal}` had **no rule at all** —
+enumerating collections deliberately means an omitted one is denied outright, and this one was
+just missed when the quick-link feature shipped. Fixed alongside the tripwire below; same root
+category of bug (a collection silently unprotected/misconfigured with no visible symptom until
+someone hits it).
+
+The fix isn't "redeploy once" — it's a live tripwire so the *next* drift is visible instead of
+silent:
+
+- `firestore.rules` gets a `meta/{docId}` match: team-readable, admin-write-only (so a
+  compromised/buggy session can't rewrite it to mask a real drift).
+- The client (`content-hub-firebase.html`) holds `EXPECTED_RULES_VERSION`, subscribes to
+  `meta/rulesVersion` via `onSnapshot` in `startListeners()`, and banners
+  (`#rulesVersionBanner`, red `.banner-danger` variant of `.onboarding-banner`) whenever the two
+  disagree. No dismiss button — it's meant to clear itself live, for everyone, the moment an
+  admin fixes the drift, so hiding it would hide a real still-open problem.
+- Rules can't report their own content to a client, so there is **no way to derive this
+  automatically** — three copies are kept in sync **by hand**, every time `firestore.rules`
+  changes and gets deployed:
+  1. The `RULES_VERSION: <date>` comment directly above the `meta/{docId}` block in
+     `firestore.rules`.
+  2. `EXPECTED_RULES_VERSION` in `content-hub-firebase.html` (then re-run
+     `sync_from_scratchpad.py` so `index.html` picks it up).
+  3. The actual `meta/rulesVersion` document's `version` field, set by an admin via the Firebase
+     Console's Firestore **Data** tab (a console edit is a project-owner action and bypasses
+     rules, same as any other manual doc edit there) — **this is the step that actually matters**;
+     the other two are just what the client compares against.
+- A missing `meta/rulesVersion` doc (freshly deployed, nobody's created it yet) is treated as
+  "unknown," not "stale" — otherwise every fresh install would banner permanently for a mismatch
+  nobody's actually observed. A `permission-denied` reading it (meaning the live rules predate
+  the `meta/` match entirely) banners with "unknown (pre-dates this check)" rather than failing
+  silently, since that too means the live rules are behind.
 
 ## Team roster (`people`)
 
